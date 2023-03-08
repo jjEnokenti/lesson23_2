@@ -3,7 +3,11 @@ import json
 from flask import Flask, request
 
 from my_exceptions import BadQuery
-from utils import mapper, is_exist, gen_file_data
+from utils import (
+    functions,
+    is_exist,
+    gen_file_data
+)
 
 app = Flask(__name__)
 
@@ -31,8 +35,8 @@ def perform_query():
                 return '', 400
 
             data_from_file = gen_file_data(file_name)
-            result = mapper(cmd_1, value_1, data_from_file)
-            result = mapper(cmd_2, value_2, result)
+            result = functions[cmd_1](value_1, data_from_file)
+            result = functions[cmd_2](value_2, result)
 
             return app.response_class(json.dumps(list(result)), content_type='text/plain')
     except (AttributeError, BadQuery):
