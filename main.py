@@ -1,46 +1,43 @@
-import json
+from flask import Flask, request, jsonify
+from marshmallow import ValidationError
 
-from flask import Flask, request
-
+from functions import caller
+from models import RequestSchema
 from my_exceptions import BadQuery
-from utils import (
-    functions,
-    is_exist,
-    gen_file_data
-)
+from utils import is_exist, gen_file_data
 
 app = Flask(__name__)
 
 
-@app.route('/perform_query', methods=['GET', 'POST'])
-def perform_query():
+@app.route('/perform_query', methods=['POST'])
+def perform_query():  # type: ignore
+
     try:
-        query = None
+        valid_data = RequestSchema().load(request.json)
+    except ValidationError as error:
+        return error, 400
 
-        if request.method == 'GET':
-            query = request.args
-        elif request.method == 'POST':
-            query = request.form
+    queries = valid_data.queries
+    file_name = valid_data.file_name
 
-        if query:
-            file_name = query.get('file_name')
+    if not is_exist(file_name=file_name):
+        return 'file not found', 404
 
-            cmd_1 = query.get('cmd1')
-            value_1 = query.get('value1')
+    data = gen_file_data(file_name=file_name)
+    result_data = []
 
-            cmd_2 = query.get('cmd2')
-            value_2 = query.get('value2')
-
-            if not is_exist(file_name=file_name):
-                return '', 400
-
-            data_from_file = gen_file_data(file_name)
-            result = functions[cmd_1](value_1, data_from_file)
-            result = functions[cmd_2](value_2, result)
-
-            return app.response_class(json.dumps(list(result)), content_type='text/plain')
-    except (AttributeError, BadQuery):
-        return '', 400
+    try:
+        for cnt, query in enumerate(queries):
+            cmd = query.cmd
+            value = query.value
+            if not cnt:
+                result_data = caller(cmd, value, data)
+            else:
+                result_data = caller(cmd, value, data=result_data)
+    except (AttributeError, BadQuery) as error:
+        return error, 400
+    else:
+        return jsonify(result_data)
 
 
 if __name__ == '__main__':
