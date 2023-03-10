@@ -4,12 +4,12 @@
         "queries":
                 [
                     {
-                        "cmd": "map",
-                         "value": 0
-                    },
-                    {
                         "cmd": "regex",
                         "value": "images\/\\w+\\.png"
+                    },
+                    {
+                        "cmd": "map",
+                         "value": 0
                     },
                     {
                         "cmd": "limit",
